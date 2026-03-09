@@ -1,0 +1,5 @@
+*.csv
+
+# environment files containing database credentials
+.env.*           # ignore any variant such as .env.local
+.env

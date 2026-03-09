@@ -1,5 +1,6 @@
 pandas
 sqlalchemy
 psycopg2-binary
-dbt-postgres
 python-dotenv
+chromadb
+sentence-transformers

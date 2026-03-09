@@ -1,5 +1,30 @@
+# Source data (large CSV files — load manually or via DVC)
+data/
 *.csv
 
-# environment files containing database credentials
-.env.*           # ignore any variant such as .env.local
+# Environment / secrets
 .env
+.env.*
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Docker volumes (local runtime state)
+postgres_data/
+chroma_data/
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/

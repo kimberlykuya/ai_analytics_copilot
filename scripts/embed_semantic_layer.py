@@ -1,15 +1,8 @@
-import os
+import os, json, hashlib
 import chromadb
-from sentence_transformers import SentenceTransformer
-
-# Use the locally-cached model — no HF Hub network check
-os.environ["HF_HUB_OFFLINE"] = "1"
 
 # ChromaDB Docker container is mapped to host port 9000 (see docker-compose.yml: "9000:8000")
-client = chromadb.HttpClient(host="localhost", port=9000)
-
-# Load model from local cache
-model = SentenceTransformer("all-MiniLM-L6-v2")
+client = chromadb.HttpClient(host="127.0.0.1", port=9000)
 
 # Re-create collection cleanly (delete if exists so embedding config is consistent)
 existing = [c.name for c in client.list_collections()]
@@ -84,9 +77,25 @@ Use for: retention, repeat customers, loyalty, churn, returning buyers""",
     },
 ]
 
-# Compute embeddings locally then push to ChromaDB
+# Compute embeddings — use disk cache to avoid reloading the model on every run
+CACHE_PATH = os.path.join(os.path.dirname(__file__), ".embedding_cache.json")
 texts = [m["text"] for m in metrics]
-embeddings = model.encode(texts).tolist()
+text_hash = hashlib.sha256("".join(texts).encode()).hexdigest()
+
+cache_hit = False
+if os.path.exists(CACHE_PATH):
+    with open(CACHE_PATH, "r") as f:
+        cache = json.load(f)
+    if cache.get("hash") == text_hash:
+        embeddings = cache["embeddings"]
+        cache_hit = True
+
+if not cache_hit:
+    from sentence_transformers import SentenceTransformer
+    model = SentenceTransformer("all-MiniLM-L6-v2")
+    embeddings = model.encode(texts).tolist()
+    with open(CACHE_PATH, "w") as f:
+        json.dump({"hash": text_hash, "embeddings": embeddings}, f)
 
 collection.upsert(
     documents=texts,

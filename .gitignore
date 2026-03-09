@@ -28,3 +28,4 @@ Thumbs.db
 
 # Editor
 .vscode/
+scripts/.embedding_cache.json

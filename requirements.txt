@@ -4,3 +4,5 @@ psycopg2-binary
 python-dotenv
 chromadb
 sentence-transformers
+fastapi
+uvicorn[standard]

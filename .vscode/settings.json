@@ -2,8 +2,11 @@
     "cSpell.words": [
         "chromadb",
         "dotenv",
+        "fastapi",
+        "hnsw",
         "olist",
         "psycopg",
-        "sqlalchemy"
+        "sqlalchemy",
+        "uvicorn"
     ]
 }

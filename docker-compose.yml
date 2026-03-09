@@ -2,12 +2,10 @@ services:
   postgres:
     image: postgres:latest
     environment:
-      # all credentials now come exclusively from the environment (e.g. .env)
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      # host port is also configurable via environment
       - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
@@ -18,6 +16,31 @@ services:
       - "9000:8000"
     volumes:
       - chroma_data:/chroma/chroma
+
+  embedding_service:
+    build:
+      context: .
+      dockerfile: Dockerfile.embedding
+    ports:
+      - "8001:8001"
+    # Model weights baked into the image at build time; no volume needed
+
+  nextjs:
+    build:
+      context: ./olist-copilot
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      # Inter-container URLs use Docker service names (not localhost)
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      CHROMA_URL: http://chromadb:8000
+      EMBEDDING_SERVICE_URL: http://embedding_service:8001
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+    depends_on:
+      - postgres
+      - chromadb
+      - embedding_service
 
 volumes:
   postgres_data:

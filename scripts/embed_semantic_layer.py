@@ -39,7 +39,7 @@ Definition: % of created orders reaching delivered status.
 Formula: delivered_orders / total_orders * 100
 SQL view: analytics.conversion_rate
 Dimensions: month
-Use for: conversion, order success rate, fulfilment rate, drop-off""",
+Use for: conversion, order success rate, fulfillment rate, drop-off""",
     },
     {
         "id": "average_order_value",

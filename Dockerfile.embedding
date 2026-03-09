@@ -1,15 +1,18 @@
-FROM python:3.14-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies
+# CPU-only PyTorch (~170 MB) instead of the default CUDA build (~1.5 GB)
+# Uses the exact same code path as embed_semantic_layer.py → guaranteed identical vectors
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
 RUN pip install --no-cache-dir \
     sentence-transformers \
     fastapi \
     "uvicorn[standard]"
 
-# Pre-download all-MiniLM-L6-v2 at build time so startup is instant
-# and the image is self-contained (no HuggingFace network calls at runtime)
+# Pre-download all-MiniLM-L6-v2 at build time so the container starts
+# instantly and is fully self-contained (no HuggingFace network calls at runtime)
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
 
 COPY scripts/embedding_service.py .

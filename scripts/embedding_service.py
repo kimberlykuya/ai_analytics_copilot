@@ -2,10 +2,13 @@
 Embedding microservice — must use the SAME model as embed_semantic_layer.py
 so that query vectors are in the same space as the stored ChromaDB embeddings.
 
-Model: all-MiniLM-L6-v2  (sentence-transformers)
+Model: sentence-transformers/all-MiniLM-L6-v2
+Runtime: CPU-only PyTorch inside Docker (~170 MB vs ~1.5 GB for CUDA build)
 
-Start with:
+Start with (local dev, venv active):
     python scripts/embedding_service.py
+
+In Docker: started automatically via docker compose up
 
 Listens on http://localhost:8001
 """
@@ -27,6 +30,16 @@ class EmbedRequest(BaseModel):
 def embed(req: EmbedRequest) -> dict:
     vector = _model.encode(req.text).tolist()
     return {"embedding": vector}
+
+
+@app.get("/health")
+def health() -> dict:
+    return {"status": "ok"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)
 
 
 @app.get("/health")

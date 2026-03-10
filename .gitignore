@@ -1,6 +1,7 @@
 # Source data (large CSV files — load manually or via DVC)
 data/
 *.csv
+docs/
 
 # Environment / secrets
 .env

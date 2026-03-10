@@ -11,6 +11,7 @@ if "semantic_layer" in existing:
 
 collection = client.get_or_create_collection(
     name="semantic_layer",
+        embedding_function=None,
     metadata={"hnsw:space": "cosine"},
 )
 

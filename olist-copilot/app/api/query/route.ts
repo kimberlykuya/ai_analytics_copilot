@@ -49,15 +49,25 @@ async function retrieveContext(question: string): Promise<string[]> {
     host: chromaUrl.hostname,
     port: Number(chromaUrl.port) || (chromaUrl.protocol === "https:" ? 443 : 80),
   });
-  const collection = await client.getCollection({
-    name: "semantic_layer",
-    embeddingFunction: stubEmbeddingFn,
-  });
-  const results = await collection.query({
-    queryEmbeddings: [queryVector],
-    nResults: 3,
-  });
-  return results.documents[0] as string[];
+  try {
+    const collection = await client.getCollection({
+      name: "semantic_layer",
+      embeddingFunction: stubEmbeddingFn,
+    });
+    const results = await collection.query({
+      queryEmbeddings: [queryVector],
+      nResults: 3,
+    });
+    return results.documents[0] as string[];
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.toLowerCase().includes("defaultembeddingfunction")) {
+      throw new Error(
+        "Chroma collection was created with default-embed metadata. Rebuild semantic_layer via `python scripts/embed_semantic_layer.py` and restart the app.",
+      );
+    }
+    throw err;
+  }
 }
 
 async function callGemini(prompt: string): Promise<string> {
@@ -65,14 +75,86 @@ async function callGemini(prompt: string): Promise<string> {
   return result.response.text();
 }
 
-export async function POST(req: NextRequest) {
-  const { question } = await req.json();
+const REQUIRED_VIEWS = [
+  "analytics.total_revenue",
+  "analytics.active_customers",
+  "analytics.conversion_rate",
+  "analytics.average_order_value",
+  "analytics.order_fulfillment_time",
+  "analytics.revenue_by_category",
+  "analytics.customer_retention_rate",
+];
 
-  // Step 1: RAG retrieval – embed question, vector-search ChromaDB
-  const context = await retrieveContext(question);
+async function getMissingViews(): Promise<string[]> {
+  const missing: string[] = [];
+  for (const view of REQUIRED_VIEWS) {
+    const check = await pool.query("SELECT to_regclass($1) AS reg", [view]);
+    if (!check.rows[0]?.reg) missing.push(view);
+  }
+  return missing;
+}
 
-  // Step 2: Generate SQL
-  const sqlPrompt = `You are a SQL generator for a PostgreSQL analytics warehouse.
+function buildFallbackSql(question: string): string | null {
+  const q = question.toLowerCase();
+  const years = Array.from(new Set((q.match(/\b(20\d{2})\b/g) ?? []).map(Number))).sort(
+    (a, b) => a - b,
+  );
+
+  if (/\btotal\s+revenue\b/.test(q) && years.length >= 2) {
+    const yearList = years.join(", ");
+    return `SELECT
+  EXTRACT(YEAR FROM month)::INT AS year,
+  ROUND(SUM(total_revenue)::NUMERIC, 2) AS total_revenue
+FROM analytics.total_revenue
+WHERE EXTRACT(YEAR FROM month) IN (${yearList})
+GROUP BY 1
+ORDER BY 1;`;
+  }
+
+  if (
+    /\bhighest\b/.test(q) &&
+    /(\baov\b|average order value)/.test(q) &&
+    /\bcategory\b/.test(q)
+  ) {
+    return `SELECT
+  product_category,
+  ROUND(AVG(avg_order_value)::NUMERIC, 2) AS average_order_value
+FROM analytics.average_order_value
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 1;`;
+  }
+
+  if (/\bconversion\s+rate\b/.test(q) && /(\bmonthly\b|trend)/.test(q)) {
+    return `SELECT
+  month,
+  conversion_rate_pct
+FROM analytics.conversion_rate
+ORDER BY month;`;
+  }
+
+  if (/\bslowest\b/.test(q) && /(\bfulfillment\b|\bdelivery\b)/.test(q) && /\bstates?\b/.test(q)) {
+    return `SELECT
+  customer_state,
+  ROUND(AVG(avg_fulfillment_days)::NUMERIC, 2) AS avg_fulfillment_days
+FROM analytics.order_fulfillment_time
+GROUP BY 1
+ORDER BY 2 DESC;`;
+  }
+
+  if (/\bcustomer\s+retention\s+rate\b/.test(q) && /\bmonth\b/.test(q)) {
+    return `SELECT
+  month,
+  retention_rate_pct
+FROM analytics.customer_retention_rate
+ORDER BY month;`;
+  }
+
+  return null;
+}
+
+function buildSqlPrompt(question: string, context: string[]): string {
+  return `You are a SQL generator for a PostgreSQL analytics warehouse.
 Generate ONE valid SELECT query using ONLY these governed metric views:
 ${context.join("\n\n")}
 
@@ -94,24 +176,80 @@ Rules:
 Return ONLY the raw SQL query or OUTSIDE_SCOPE. No explanation, no markdown fences.
 
 Question: ${question}`;
+}
 
-  let sql = (await callGemini(sqlPrompt)).trim();
-  // Strip markdown code fences if present (e.g. ```sql ... ```)
-  sql = sql.replace(/^```(?:sql)?\s*/i, "").replace(/\s*```$/i, "").trim();
+function buildGroundedAnswerPrompt(
+  question: string,
+  context: string[],
+  sqlResult: Record<string, unknown>[],
+): string {
+  return `You are an analytics assistant. Answer ONLY using the governed metric definitions below.
+Do not invent metrics or use definitions not listed.
 
-  let sqlResult: Record<string, unknown>[] = [];
+GOVERNED METRICS:
+${context.join("\n\n")}
+
+DATA RESULTS:
+${JSON.stringify(sqlResult, null, 2)}
+
+Question: ${question}
+
+Provide a clear business-friendly answer grounded in the data above.`;
+}
+
+type SqlExecution = {
+  sql: string;
+  sqlResult: Record<string, unknown>[];
+  isOutsideScope: boolean;
+};
+
+async function runSql(initialSql: string, fallbackSql: string | null): Promise<SqlExecution> {
+  let sql = initialSql;
   let isOutsideScope = sql.toUpperCase().includes("OUTSIDE_SCOPE");
 
-  if (!isOutsideScope) {
+  if (isOutsideScope && fallbackSql) {
+    sql = fallbackSql;
+    isOutsideScope = false;
+  }
+
+  if (isOutsideScope) {
+    return { sql, sqlResult: [], isOutsideScope: true };
+  }
+
+  try {
+    const res = await pool.query(sql);
+    return { sql, sqlResult: res.rows.slice(0, 25), isOutsideScope: false };
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[query] SQL failed, retrying:", errMsg, "\nSQL:", sql);
+    return retryWithFallbackOrGemini(sql, fallbackSql, errMsg);
+  }
+}
+
+async function retryWithFallbackOrGemini(
+  sql: string,
+  fallbackSql: string | null,
+  originalError: string,
+): Promise<SqlExecution> {
+  if (fallbackSql && fallbackSql !== sql) {
     try {
-      const res = await pool.query(sql);
-      sqlResult = res.rows.slice(0, 25);
-    } catch (err: unknown) {
-      // Retry once: send the error back to Gemini so it can fix the SQL
-      const errMsg = err instanceof Error ? err.message : String(err);
-      console.error("[query] SQL failed, retrying:", errMsg, "\nSQL:", sql);
-      const retryPrompt = `The following SQL query failed with this error:
-Error: ${errMsg}
+      const fallbackRes = await pool.query(fallbackSql);
+      return {
+        sql: fallbackSql,
+        sqlResult: fallbackRes.rows.slice(0, 25),
+        isOutsideScope: false,
+      };
+    } catch (fallbackErr: unknown) {
+      const fallbackErrMsg = fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr);
+      console.error("[query] Fallback SQL failed:", fallbackErrMsg, "\nSQL:", fallbackSql);
+    }
+  }
+  return retrySqlAfterFailure(sql, originalError);
+}
+
+async function retrySqlAfterFailure(sql: string, originalError: string): Promise<SqlExecution> {
+  const retryPrompt = `The following SQL query failed with this error:
+Error: ${originalError}
 Query: ${sql}
 
 Fix the query using ONLY these views and columns:
@@ -124,19 +262,65 @@ Fix the query using ONLY these views and columns:
 - analytics.customer_retention_rate (month TIMESTAMP, cohort_size BIGINT, retained_next_month BIGINT, retention_rate_pct NUMERIC)
 
 Return ONLY the corrected SQL. No explanation, no markdown fences.`;
-      let retrySql = (await callGemini(retryPrompt)).trim();
-      retrySql = retrySql.replace(/^```(?:sql)?\s*/i, "").replace(/\s*```$/i, "").trim();
-      try {
-        const res2 = await pool.query(retrySql);
-        sql = retrySql;
-        sqlResult = res2.rows.slice(0, 25);
-      } catch (retryErr: unknown) {
-        const errMsg2 = retryErr instanceof Error ? retryErr.message : String(retryErr);
-        console.error("[query] SQL retry also failed:", errMsg2, "\nSQL:", retrySql);
-        isOutsideScope = true;
-      }
-    }
+
+  let retrySql = (await callGemini(retryPrompt)).trim();
+  retrySql = retrySql.replace(/^```(?:sql)?\s*/i, "").replace(/\s*```$/i, "").trim();
+  try {
+    const res2 = await pool.query(retrySql);
+    return {
+      sql: retrySql,
+      sqlResult: res2.rows.slice(0, 25),
+      isOutsideScope: false,
+    };
+  } catch (retryErr: unknown) {
+    const errMsg2 = retryErr instanceof Error ? retryErr.message : String(retryErr);
+    console.error("[query] SQL retry also failed:", errMsg2, "\nSQL:", retrySql);
+    return { sql: retrySql, sqlResult: [], isOutsideScope: true };
   }
+}
+
+export async function POST(req: NextRequest) {
+  const { question } = await req.json();
+  const fallbackSql = buildFallbackSql(question);
+
+  // Infrastructure guardrail: this is a setup issue, not an out-of-scope question.
+  const missingViews = await getMissingViews();
+  if (missingViews.length > 0) {
+    return NextResponse.json({
+      answer: `The analytics warehouse is not initialized. Missing views: ${missingViews.join(", ")}. Run \`python scripts/load_data.py\` from the project root, then retry.`,
+      sql: null,
+      sqlResult: [],
+      context: [],
+      isOutsideScope: true,
+    });
+  }
+
+  // Step 1: RAG retrieval – embed question, vector-search ChromaDB
+  let context: string[] = [];
+  try {
+    context = await retrieveContext(question);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({
+      answer: `Semantic retrieval is unavailable: ${msg}`,
+      sql: null,
+      sqlResult: [],
+      context: [],
+      isOutsideScope: true,
+    });
+  }
+
+  // Step 2: Generate SQL
+  const sqlPrompt = buildSqlPrompt(question, context);
+
+  let sql = (await callGemini(sqlPrompt)).trim();
+  // Strip markdown code fences if present (e.g. ```sql ... ```)
+  sql = sql.replace(/^```(?:sql)?\s*/i, "").replace(/\s*```$/i, "").trim();
+
+  const execution = await runSql(sql, fallbackSql);
+  sql = execution.sql;
+  const sqlResult = execution.sqlResult;
+  const isOutsideScope = execution.isOutsideScope;
 
   // Step 3: Generate grounded natural-language answer
   const answerPrompt = isOutsideScope
@@ -146,18 +330,7 @@ Politely explain that you can only answer using these 7 defined metrics:
 total_revenue, active_customers, conversion_rate, average_order_value,
 order_fulfillment_time, revenue_by_category, customer_retention_rate.
 Suggest which metric might be closest to what they are looking for.`
-    : `You are an analytics assistant. Answer ONLY using the governed metric definitions below.
-Do not invent metrics or use definitions not listed.
-
-GOVERNED METRICS:
-${context.join("\n\n")}
-
-DATA RESULTS:
-${JSON.stringify(sqlResult, null, 2)}
-
-Question: ${question}
-
-Provide a clear business-friendly answer grounded in the data above.`;
+    : buildGroundedAnswerPrompt(question, context, sqlResult);
 
   const answer = await callGemini(answerPrompt);
 

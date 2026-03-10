@@ -6,7 +6,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 // Module-level singletons – reused across warm invocations
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite-preview" });
 
 /**
  * Embed the question using the Python embedding microservice (scripts/embedding_service.py).
@@ -28,11 +28,27 @@ async function embedQuestion(question: string): Promise<number[]> {
  * True RAG retrieval: embed the question, then query ChromaDB with the raw
  * vector so the lookup uses the same embedding space as ingestion.
  */
+// Stub embedding function – we always supply raw vectors, so this is never called.
+// Providing it prevents chromadb from trying to load @chroma-core/default-embed.
+const stubEmbeddingFn = {
+  generate: async (_texts: string[]): Promise<number[][]> => {
+    throw new Error("Stub embedding function must not be called");
+  },
+};
+
 async function retrieveContext(question: string): Promise<string[]> {
   const queryVector = await embedQuestion(question);
   // CHROMA_URL is http://localhost:9000 – host port 9000 → container 8000
-  const client = new ChromaClient({ path: process.env.CHROMA_URL });
-  const collection = await client.getCollection({ name: "semantic_layer" });
+  const chromaUrl = new URL(process.env.CHROMA_URL!);
+  const client = new ChromaClient({
+    ssl: chromaUrl.protocol === "https:",
+    host: chromaUrl.hostname,
+    port: Number(chromaUrl.port) || (chromaUrl.protocol === "https:" ? 443 : 80),
+  });
+  const collection = await client.getCollection({
+    name: "semantic_layer",
+    embeddingFunction: stubEmbeddingFn,
+  });
   const results = await collection.query({
     queryEmbeddings: [queryVector],
     nResults: 3,

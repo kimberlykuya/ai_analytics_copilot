@@ -6,6 +6,14 @@ A natural-language analytics assistant built on the [Olist Brazilian e-commerce 
 
 Business users cannot self-serve analytics because traditional BI workflows expect SQL proficiency, while unconstrained LLM assistants often hallucinate metric definitions and produce confident but ungrounded answers; this project solves that gap by restricting generation to a governed semantic layer of seven approved business metrics and rejecting out-of-scope requests instead of guessing.
 
+## Demo Video
+
+<video src="docs/assets/video.mp4" controls width="100%">
+    Your browser does not support the video tag.
+</video>
+
+[Direct video link](docs/assets/video.mp4)
+
 ## Architecture Diagram
 
 ![Simple boxes-and-arrows architecture](docs/assets/architecture-diagram.svg)

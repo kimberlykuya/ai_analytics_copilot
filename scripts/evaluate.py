@@ -17,7 +17,7 @@ Usage
    then fill in the `answer` and `contexts` fields in TEST_CASES below.
 
 Additional requirements (install once):
-   pip install ragas datasets langchain-google-genai httpx
+   pip install ragas datasets google-genai httpx
 
 Results are printed to stdout and saved to ragas_results.json.
 """
@@ -26,7 +26,6 @@ import asyncio
 import json
 import os
 import sys
-import time
 
 import httpx
 from datasets import Dataset
@@ -188,10 +187,10 @@ def build_dataset(test_cases: list[dict]) -> Dataset:
             contexts = [contexts]
         rows.append(
             {
-                "question": tc["question"],
-                "answer": tc.get("answer", ""),
-                "contexts": contexts,
-                "ground_truth": tc["ground_truth"],
+                "user_input": tc["question"],
+                "response": tc.get("answer", ""),
+                "retrieved_contexts": contexts,
+                "reference": tc["ground_truth"],
             }
         )
     return Dataset.from_list(rows)
@@ -203,34 +202,27 @@ def build_dataset(test_cases: list[dict]) -> Dataset:
 def _make_gemini_judge():
     """
     Build a Gemini judge LLM + embeddings for RAGAS 0.4.
-    Returns (llm_wrapper, embeddings_wrapper).
+    Returns (llm, embeddings) using the modern llm_factory / GoogleEmbeddings API.
     """
     try:
-        from langchain_google_genai import (
-            ChatGoogleGenerativeAI,
-            GoogleGenerativeAIEmbeddings,
-        )
-        from ragas.embeddings import LangchainEmbeddingsWrapper
-        from ragas.llms import LangchainLLMWrapper
+        from google.genai import Client
+        from ragas.embeddings import GoogleEmbeddings
+        from ragas.llms import llm_factory
     except ImportError as exc:
         sys.exit(
             f"Missing dependency: {exc}\n"
-            "Run: pip install langchain-google-genai ragas datasets httpx"
+            "Run: pip install google-genai ragas datasets httpx"
         )
 
-    llm = LangchainLLMWrapper(
-        ChatGoogleGenerativeAI(
-            model="gemini-3.1-flash-lite-preview",
-            google_api_key=GEMINI_API_KEY,
-            temperature=0,
-            request_timeout=120,
-        )
+    client = Client(api_key=GEMINI_API_KEY)
+    llm = llm_factory(
+        "gemini-2.0-flash",
+        client=client,
+        temperature=0,
     )
-    embeddings = LangchainEmbeddingsWrapper(
-        GoogleGenerativeAIEmbeddings(
-            model="models/embedding-001",
-            google_api_key=GEMINI_API_KEY,
-        )
+    embeddings = GoogleEmbeddings(
+        client=client,
+        model="gemini-embedding-001",
     )
     return llm, embeddings
 
@@ -279,9 +271,9 @@ def _bar(score: float | None, width: int = 20) -> str:
 
 def print_summary(results) -> dict:
     scores = {
-        "faithfulness": results["faithfulness"],
-        "answer_relevancy": results["answer_relevancy"],
-        "context_precision": results["context_precision"],
+        "faithfulness": results._repr_dict.get("faithfulness"),
+        "answer_relevancy": results._repr_dict.get("answer_relevancy"),
+        "context_precision": results._repr_dict.get("context_precision"),
     }
     print("\n" + "=" * _WIDTH)
     print("  SUMMARY")
@@ -298,7 +290,7 @@ def print_per_question(results):
     print("  PER-QUESTION BREAKDOWN")
     print("-" * _WIDTH)
     for _, row in df.iterrows():
-        q = str(row["question"])[:65]
+        q = str(row.get("user_input", ""))[:65]
         fa = row.get("faithfulness")
         ar = row.get("answer_relevancy")
         cp = row.get("context_precision")

@@ -28,6 +28,10 @@ async function embedQuestion(question: string): Promise<number[]> {
  * True RAG retrieval: embed the question, then query ChromaDB with the raw
  * vector so the lookup uses the same embedding space as ingestion.
  */
+/**
+ * True RAG retrieval: embed the question, then query ChromaDB with the raw
+ * vector so the lookup uses the same embedding space as ingestion.
+ */
 // Stub embedding function – we always supply raw vectors, so this is never called.
 // Providing it prevents chromadb from trying to load @chroma-core/default-embed.
 const stubEmbeddingFn = {
@@ -72,28 +76,65 @@ export async function POST(req: NextRequest) {
 Generate ONE valid SELECT query using ONLY these governed metric views:
 ${context.join("\n\n")}
 
-Available views: analytics.total_revenue, analytics.active_customers,
-analytics.conversion_rate, analytics.average_order_value,
-analytics.order_fulfillment_time, analytics.revenue_by_category,
-analytics.customer_retention_rate
+Available views and their columns:
+- analytics.total_revenue (month TIMESTAMP, customer_state TEXT, product_category TEXT, total_revenue NUMERIC)
+- analytics.active_customers (month TIMESTAMP, customer_state TEXT, active_customers BIGINT)
+- analytics.conversion_rate (month TIMESTAMP, total_orders BIGINT, delivered_orders BIGINT, conversion_rate_pct NUMERIC)
+- analytics.average_order_value (month TIMESTAMP, product_category TEXT, avg_order_value NUMERIC)
+- analytics.order_fulfillment_time (month TIMESTAMP, customer_state TEXT, avg_fulfillment_days NUMERIC)
+- analytics.revenue_by_category (month TIMESTAMP, product_category TEXT, category_revenue NUMERIC, order_count BIGINT)
+- analytics.customer_retention_rate (month TIMESTAMP, cohort_size BIGINT, retained_next_month BIGINT, retention_rate_pct NUMERIC)
 
-If the question cannot be answered with these views, return exactly: OUTSIDE_SCOPE
+Rules:
+- The "month" column is a TIMESTAMP truncated to the first day of each month.
+- To filter by year use: EXTRACT(YEAR FROM month) = <year>
+- To compare across years, group by EXTRACT(YEAR FROM month).
+- If the question cannot be answered with these views, return exactly: OUTSIDE_SCOPE
 
-Return ONLY the SQL query or OUTSIDE_SCOPE. No explanation, no markdown.
+Return ONLY the raw SQL query or OUTSIDE_SCOPE. No explanation, no markdown fences.
 
 Question: ${question}`;
 
-  const sql = (await callGemini(sqlPrompt)).trim();
+  let sql = (await callGemini(sqlPrompt)).trim();
+  // Strip markdown code fences if present (e.g. ```sql ... ```)
+  sql = sql.replace(/^```(?:sql)?\s*/i, "").replace(/\s*```$/i, "").trim();
 
   let sqlResult: Record<string, unknown>[] = [];
-  let isOutsideScope = sql === "OUTSIDE_SCOPE";
+  let isOutsideScope = sql.toUpperCase().includes("OUTSIDE_SCOPE");
 
   if (!isOutsideScope) {
     try {
       const res = await pool.query(sql);
       sqlResult = res.rows.slice(0, 25);
-    } catch {
-      isOutsideScope = true;
+    } catch (err: unknown) {
+      // Retry once: send the error back to Gemini so it can fix the SQL
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error("[query] SQL failed, retrying:", errMsg, "\nSQL:", sql);
+      const retryPrompt = `The following SQL query failed with this error:
+Error: ${errMsg}
+Query: ${sql}
+
+Fix the query using ONLY these views and columns:
+- analytics.total_revenue (month TIMESTAMP, customer_state TEXT, product_category TEXT, total_revenue NUMERIC)
+- analytics.active_customers (month TIMESTAMP, customer_state TEXT, active_customers BIGINT)
+- analytics.conversion_rate (month TIMESTAMP, total_orders BIGINT, delivered_orders BIGINT, conversion_rate_pct NUMERIC)
+- analytics.average_order_value (month TIMESTAMP, product_category TEXT, avg_order_value NUMERIC)
+- analytics.order_fulfillment_time (month TIMESTAMP, customer_state TEXT, avg_fulfillment_days NUMERIC)
+- analytics.revenue_by_category (month TIMESTAMP, product_category TEXT, category_revenue NUMERIC, order_count BIGINT)
+- analytics.customer_retention_rate (month TIMESTAMP, cohort_size BIGINT, retained_next_month BIGINT, retention_rate_pct NUMERIC)
+
+Return ONLY the corrected SQL. No explanation, no markdown fences.`;
+      let retrySql = (await callGemini(retryPrompt)).trim();
+      retrySql = retrySql.replace(/^```(?:sql)?\s*/i, "").replace(/\s*```$/i, "").trim();
+      try {
+        const res2 = await pool.query(retrySql);
+        sql = retrySql;
+        sqlResult = res2.rows.slice(0, 25);
+      } catch (retryErr: unknown) {
+        const errMsg2 = retryErr instanceof Error ? retryErr.message : String(retryErr);
+        console.error("[query] SQL retry also failed:", errMsg2, "\nSQL:", retrySql);
+        isOutsideScope = true;
+      }
     }
   }
 

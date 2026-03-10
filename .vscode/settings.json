@@ -1,12 +1,19 @@
 {
     "cSpell.words": [
         "chromadb",
+        "CUDA",
         "dotenv",
         "fastapi",
+        "genai",
         "hnsw",
+        "llms",
         "olist",
         "psycopg",
+        "pycache",
+        "pytest",
         "sqlalchemy",
-        "uvicorn"
+        "TRUNC",
+        "uvicorn",
+        "venv"
     ]
 }

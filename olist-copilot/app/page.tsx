@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const EXAMPLES = [
   "What was total revenue in 2017 vs 2018?",
@@ -95,7 +97,24 @@ export default function Home() {
                   ? "⚠ OUTSIDE SEMANTIC MODEL"
                   : "✓ GROUNDED ANSWER"}
               </div>
-              <p className="text-sm leading-relaxed">{result.answer}</p>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  p: ({ children }) => <p className="text-sm leading-relaxed mb-2">{children}</p>,
+                  ul: ({ children }) => <ul className="list-disc pl-5 space-y-1 text-sm mb-2">{children}</ul>,
+                  ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1 text-sm mb-2">{children}</ol>,
+                  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                  strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
+                  em: ({ children }) => <em className="italic">{children}</em>,
+                  code: ({ children }) => (
+                    <code className="text-xs bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5">
+                      {children}
+                    </code>
+                  ),
+                }}
+              >
+                {result.answer}
+              </ReactMarkdown>
             </div>
 
             {!result.isOutsideScope && (

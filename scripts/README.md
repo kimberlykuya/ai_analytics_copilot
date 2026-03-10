@@ -2,6 +2,40 @@
 
 Python scripts that form the data and embedding pipeline for the AI Analytics Copilot. Run these once to set up the warehouse and the semantic layer before starting the Next.js app.
 
+## Project Problem Statement
+
+Business users cannot self-serve analytics because traditional BI workflows expect SQL proficiency, while unconstrained LLM assistants often hallucinate metric definitions and produce confident but ungrounded answers; these scripts operationalize the governed semantic layer that keeps answers tied to approved metric logic.
+
+## Architecture Diagram
+
+![Simple boxes-and-arrows architecture](../docs/assets/architecture-diagram.svg)
+
+## Grounded vs Out-of-Scope Behavior
+
+![Grounded answer versus out-of-scope rejection](../docs/assets/grounded-vs-rejection.svg)
+
+## Actual RAGAS Scores (Project-Level)
+
+From `../ragas_results.json`:
+
+| Metric | Score |
+|---|---:|
+| `faithfulness` | `0.15925925925925927` |
+| `answer_relevancy` | `0.7108017722304754` |
+| `context_precision` | `0.249999999975` |
+
+## The 7 Defined Metrics (Business Definitions)
+
+| Metric | Business definition |
+|---|---|
+| `total_revenue` | Total `payment_value` from delivered orders only; excludes cancelled, unavailable, and in-transit orders. |
+| `active_customers` | Distinct `customer_unique_id` with at least one delivered order, preventing double counting from address-level customer IDs. |
+| `conversion_rate` | Percentage of created orders that reach `delivered` status: `delivered_orders / total_orders * 100`. |
+| `average_order_value` | Average revenue per delivered order (`AOV`) based on delivered-order payment values. |
+| `order_fulfillment_time` | Average calendar days from purchase timestamp to customer delivery timestamp for delivered orders. |
+| `revenue_by_category` | Delivered revenue segmented by `product_category_name`; used for category performance questions. |
+| `customer_retention_rate` | Monthly cohort retention: percentage of month-N buyers who purchase again in month N+1. |
+
 ---
 
 ## Scripts overview

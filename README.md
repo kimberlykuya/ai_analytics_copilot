@@ -2,6 +2,42 @@
 
 A natural-language analytics assistant built on the [Olist Brazilian e-commerce dataset](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce). Ask plain-English business questions and receive SQL-backed, hallucination-guarded answers — all powered by a governed semantic layer, vector search, and Google Gemini.
 
+## Problem Statement
+
+Business users cannot self-serve analytics because traditional BI workflows expect SQL proficiency, while unconstrained LLM assistants often hallucinate metric definitions and produce confident but ungrounded answers; this project solves that gap by restricting generation to a governed semantic layer of seven approved business metrics and rejecting out-of-scope requests instead of guessing.
+
+## Architecture Diagram
+
+![Simple boxes-and-arrows architecture](docs/assets/architecture-diagram.svg)
+
+## Grounded Answer vs Out-of-Scope Rejection
+
+![Grounded answer versus out-of-scope rejection](docs/assets/grounded-vs-rejection.svg)
+
+## Actual RAGAS Scores
+
+From `ragas_results.json`:
+
+| Metric | Score |
+|---|---:|
+| `faithfulness` | `0.15925925925925927` |
+| `answer_relevancy` | `0.7108017722304754` |
+| `context_precision` | `0.249999999975` |
+
+## The 7 Defined Metrics (Business Definitions)
+
+These definitions are implemented in `models/metrics/*.sql` and enforced as the semantic boundary for the assistant.
+
+| Metric | Business definition |
+|---|---|
+| `total_revenue` | Total `payment_value` from delivered orders only; excludes cancelled, unavailable, and in-transit orders. |
+| `active_customers` | Distinct `customer_unique_id` with at least one delivered order, preventing double counting from address-level customer IDs. |
+| `conversion_rate` | Percentage of created orders that reach `delivered` status: `delivered_orders / total_orders * 100`. |
+| `average_order_value` | Average revenue per delivered order (`AOV`) based on delivered-order payment values. |
+| `order_fulfillment_time` | Average calendar days from purchase timestamp to customer delivery timestamp for delivered orders. |
+| `revenue_by_category` | Delivered revenue segmented by `product_category_name`; used for category performance questions. |
+| `customer_retention_rate` | Monthly cohort retention: percentage of month-N buyers who purchase again in month N+1. |
+
 ## What it does
 
 You type a question like *"Which product category has the highest average order value?"* and the system:
@@ -16,7 +52,7 @@ Questions outside the seven governed metrics are politely declined rather than a
 
 ---
 
-## Architecture
+## Architecture (Detailed Flow)
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -111,6 +147,8 @@ POSTGRES_DB=olist
 POSTGRES_HOST=127.0.0.1
 POSTGRES_PORT=5433
 GEMINI_API_KEY=your_gemini_api_key_here
+DEMO_API_KEY=
+EMBEDDING_API_KEY=
 ```
 
 ### 2. Start all services
@@ -183,18 +221,3 @@ PostgreSQL
     ├── sellers (intermediate)
     └── products (intermediate)
 ```
-
-## Advantages over dbt
-
-✓ **Works with Python 3.14** (no compatibility issues)
-✓ **Simpler setup** (no profiles.yml, no dbt CLI issues)
-✓ **Full Python control** (can add custom transformations)
-✓ **Easier debugging** (standard Python stack traces)
-✓ **Can call from other Python code** (notebooks, APIs, etc.)
-
-## Next Steps
-
-1. Add Great Expectations for data quality tests
-2. Create orchestration with Airflow/Prefect
-3. Add more intermediate models
-4. Create business metric calculations

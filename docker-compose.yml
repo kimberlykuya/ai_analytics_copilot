@@ -37,6 +37,8 @@ services:
       CHROMA_URL: http://chromadb:8000
       EMBEDDING_SERVICE_URL: http://embedding_service:8001
       GEMINI_API_KEY: ${GEMINI_API_KEY}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
+      DEMO_API_KEY: ${DEMO_API_KEY:-}
     depends_on:
       - postgres
       - chromadb

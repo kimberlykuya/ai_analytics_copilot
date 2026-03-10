@@ -1,0 +1,195 @@
+{
+  "summary": {
+    "faithfulness": 0.15925925925925927,
+    "answer_relevancy": 0.7108017722304754,
+    "context_precision": 0.249999999975
+  },
+  "per_question": [
+    {
+      "user_input": "What was total revenue in 2018?",
+      "retrieved_contexts": [
+        "Metric: total_revenue\nDefinition: Total payment value from delivered orders only.\nExcludes cancelled, unavailable, or in-transit orders.\nSQL view: analytics.total_revenue\nDimensions: month, customer_state, product_category\nUse for: revenue, sales, income, earnings, money made, how much did we earn",
+        "Metric: revenue_by_category\nDefinition: Delivered revenue segmented by product_category_name.\nUse this INSTEAD of total_revenue when question involves product types.\nSQL view: analytics.revenue_by_category\nDimensions: month, product_category\nUse for: best category, top products, category performance, segment revenue",
+        "Metric: average_order_value (AOV)\nDefinition: Average revenue per delivered order.\nFormula: SUM(payment_value) / COUNT(delivered_orders)\nSQL view: analytics.average_order_value\nDimensions: month, product_category\nUse for: AOV, basket size, average purchase, order value"
+      ],
+      "response": "The total revenue earned in 2018 was $10,841,161.92.",
+      "reference": "Total revenue is the sum of payment_value from delivered orders only. Cancelled, unavailable, or in-transit orders are excluded. The answer should reference the analytics.total_revenue view.",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.9602300268993439,
+      "context_precision": 0.0
+    },
+    {
+      "user_input": "How many active customers were there in November 2017?",
+      "retrieved_contexts": [
+        "Metric: active_customers\nDefinition: Unique customers (customer_unique_id) with at least one delivered order.\nSQL view: analytics.active_customers\nDimensions: month, customer_state\nUse for: active users, customer count, how many customers, user base",
+        "Metric: customer_retention_rate\nDefinition: % of month-N buyers who also bought in month N+1.\nSQL view: analytics.customer_retention_rate\nDimensions: month (cohort)\nUse for: retention, repeat customers, loyalty, churn, returning buyers",
+        "Metric: average_order_value (AOV)\nDefinition: Average revenue per delivered order.\nFormula: SUM(payment_value) / COUNT(delivered_orders)\nSQL view: analytics.average_order_value\nDimensions: month, product_category\nUse for: AOV, basket size, average purchase, order value"
+      ],
+      "response": "I cannot provide the number of active customers for November 2017 because the provided data results do not include time-based dimensions (such as month) to map the values to that specific period.",
+      "reference": "Active customers are unique customers (customer_unique_id) who placed at least one delivered order in the specified period.",
+      "faithfulness": 0.5,
+      "answer_relevancy": 0.0,
+      "context_precision": 0.0
+    },
+    {
+      "user_input": "What is the overall order conversion rate?",
+      "retrieved_contexts": [
+        "Metric: conversion_rate\nDefinition: % of created orders reaching delivered status.\nFormula: delivered_orders / total_orders * 100\nSQL view: analytics.conversion_rate\nDimensions: month\nUse for: conversion, order success rate, fulfillment rate, drop-off",
+        "Metric: average_order_value (AOV)\nDefinition: Average revenue per delivered order.\nFormula: SUM(payment_value) / COUNT(delivered_orders)\nSQL view: analytics.average_order_value\nDimensions: month, product_category\nUse for: AOV, basket size, average purchase, order value",
+        "Metric: order_fulfillment_time\nDefinition: Avg calendar days from purchase to delivery. Delivered orders only.\nSQL view: analytics.order_fulfillment_time\nDimensions: month, customer_state\nUse for: delivery speed, shipping time, fulfillment, how long, logistics"
+      ],
+      "response": "The overall order conversion rate is 97.02%. This metric represents the percentage of created orders that successfully reached delivered status.",
+      "reference": "Conversion rate is the percentage of created orders that reach delivered status. Formula: delivered_orders / total_orders * 100.",
+      "faithfulness": 0.5,
+      "answer_relevancy": 0.9144151932551254,
+      "context_precision": 0.9999999999
+    },
+    {
+      "user_input": "What is the average order value per month in 2018?",
+      "retrieved_contexts": [
+        "Metric: average_order_value (AOV)\nDefinition: Average revenue per delivered order.\nFormula: SUM(payment_value) / COUNT(delivered_orders)\nSQL view: analytics.average_order_value\nDimensions: month, product_category\nUse for: AOV, basket size, average purchase, order value",
+        "Metric: conversion_rate\nDefinition: % of created orders reaching delivered status.\nFormula: delivered_orders / total_orders * 100\nSQL view: analytics.conversion_rate\nDimensions: month\nUse for: conversion, order success rate, fulfillment rate, drop-off",
+        "Metric: customer_retention_rate\nDefinition: % of month-N buyers who also bought in month N+1.\nSQL view: analytics.customer_retention_rate\nDimensions: month (cohort)\nUse for: retention, repeat customers, loyalty, churn, returning buyers"
+      ],
+      "response": "The provided data only contains information for December 2017. There is no available data for 2018 to calculate the average order value (AOV) for that year.",
+      "reference": "Average order value (AOV) is the average revenue per delivered order. Formula: SUM(payment_value) / COUNT(delivered_orders).",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.0,
+      "context_precision": 0.0
+    },
+    {
+      "user_input": "What is the average delivery time for orders by customer state?",
+      "retrieved_contexts": [
+        "Metric: order_fulfillment_time\nDefinition: Avg calendar days from purchase to delivery. Delivered orders only.\nSQL view: analytics.order_fulfillment_time\nDimensions: month, customer_state\nUse for: delivery speed, shipping time, fulfillment, how long, logistics",
+        "Metric: conversion_rate\nDefinition: % of created orders reaching delivered status.\nFormula: delivered_orders / total_orders * 100\nSQL view: analytics.conversion_rate\nDimensions: month\nUse for: conversion, order success rate, fulfillment rate, drop-off",
+        "Metric: average_order_value (AOV)\nDefinition: Average revenue per delivered order.\nFormula: SUM(payment_value) / COUNT(delivered_orders)\nSQL view: analytics.average_order_value\nDimensions: month, product_category\nUse for: AOV, basket size, average purchase, order value"
+      ],
+      "response": "The order_fulfillment_time\u2014defined as the average calendar days from purchase to delivery for delivered orders\u2014varies by customer state as follows:\n\n*   **SP:** 11.50 days\n*   **MG:** 12.10 days\n*   **DF:** 13.70 days\n*   **RJ:** 14.69 days\n*   **RS:** 14.97 days\n*   **SC:** 14.99 days\n*   **MS:** 15.10 days\n*   **GO:** 15.55 days\n*   **ES:** 15.92 days\n*   **MT:** 17.55 days\n*   **PE:** 18.61 days\n*   **BA:** 19.36 days\n*   **RN:** 19.40 days\n*   **RO:** 19.45 days\n*   **PI:** 19.69 days\n*   **PB:** 20.97 days\n*   **MA:** 21.20 days\n*   **AC:** 21.31 days\n*   **CE:** 21.57 days\n*   **SE:** 21.67 days\n*   **AL:** 24.58 days\n*   **AM:** 25.24 days\n*   **AP:** 26.17 days\n*   **RR:** 28.63 days\n\n*(Note: Data for PR is 11.86 days)*",
+      "reference": "Order fulfillment time is the average calendar days from purchase timestamp to delivery timestamp for delivered orders only, segmented by customer state.",
+      "faithfulness": 0.07407407407407407,
+      "answer_relevancy": 0.9224744174914228,
+      "context_precision": 0.9999999999
+    },
+    {
+      "user_input": "Which product category generates the most revenue?",
+      "retrieved_contexts": [
+        "Metric: revenue_by_category\nDefinition: Delivered revenue segmented by product_category_name.\nUse this INSTEAD of total_revenue when question involves product types.\nSQL view: analytics.revenue_by_category\nDimensions: month, product_category\nUse for: best category, top products, category performance, segment revenue",
+        "Metric: average_order_value (AOV)\nDefinition: Average revenue per delivered order.\nFormula: SUM(payment_value) / COUNT(delivered_orders)\nSQL view: analytics.average_order_value\nDimensions: month, product_category\nUse for: AOV, basket size, average purchase, order value",
+        "Metric: total_revenue\nDefinition: Total payment value from delivered orders only.\nExcludes cancelled, unavailable, or in-transit orders.\nSQL view: analytics.total_revenue\nDimensions: month, customer_state, product_category\nUse for: revenue, sales, income, earnings, money made, how much did we earn"
+      ],
+      "response": "The product category generating the most revenue is cama_mesa_banho, with a total of 1,692,714.28 in revenue.",
+      "reference": "Revenue by category is delivered revenue segmented by product_category_name. The top category has the highest sum of payment_value across delivered orders.",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.9540083601729115,
+      "context_precision": 0.0
+    },
+    {
+      "user_input": "What is the customer retention rate for Q1 2018?",
+      "retrieved_contexts": [
+        "Metric: customer_retention_rate\nDefinition: % of month-N buyers who also bought in month N+1.\nSQL view: analytics.customer_retention_rate\nDimensions: month (cohort)\nUse for: retention, repeat customers, loyalty, churn, returning buyers",
+        "Metric: active_customers\nDefinition: Unique customers (customer_unique_id) with at least one delivered order.\nSQL view: analytics.active_customers\nDimensions: month, customer_state\nUse for: active users, customer count, how many customers, user base",
+        "Metric: conversion_rate\nDefinition: % of created orders reaching delivered status.\nFormula: delivered_orders / total_orders * 100\nSQL view: analytics.conversion_rate\nDimensions: month\nUse for: conversion, order success rate, fulfillment rate, drop-off"
+      ],
+      "response": "The customer retention rate for Q1 2018 is 40%.",
+      "reference": "Customer retention rate is the percentage of customers who purchased in month N and also purchased in month N+1, computed per cohort month.",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.9951681016205777,
+      "context_precision": 0.0
+    },
+    {
+      "user_input": "What are the top 3 product categories by revenue in 2017?",
+      "retrieved_contexts": [
+        "Metric: revenue_by_category\nDefinition: Delivered revenue segmented by product_category_name.\nUse this INSTEAD of total_revenue when question involves product types.\nSQL view: analytics.revenue_by_category\nDimensions: month, product_category\nUse for: best category, top products, category performance, segment revenue",
+        "Metric: average_order_value (AOV)\nDefinition: Average revenue per delivered order.\nFormula: SUM(payment_value) / COUNT(delivered_orders)\nSQL view: analytics.average_order_value\nDimensions: month, product_category\nUse for: AOV, basket size, average purchase, order value",
+        "Metric: total_revenue\nDefinition: Total payment value from delivered orders only.\nExcludes cancelled, unavailable, or in-transit orders.\nSQL view: analytics.total_revenue\nDimensions: month, customer_state, product_category\nUse for: revenue, sales, income, earnings, money made, how much did we earn"
+      ],
+      "response": "The top 3 product categories by revenue are:\n\n1. **cama_mesa_banho**: 786,557.77\n2. **informatica_acessorios**: 682,059.73\n3. **moveis_decoracao**: 649,064.49\n\nThese figures represent the `revenue_by_category`, defined as the delivered revenue segmented by product category.",
+      "reference": "Revenue by category ranks product_category_name by sum of payment_value from delivered orders. The top 3 categories have the highest revenue totals.",
+      "faithfulness": 0.2,
+      "answer_relevancy": 0.9401180784044207,
+      "context_precision": 0.0
+    }
+  ],
+  "inputs": [
+    {
+      "question": "What was total revenue in 2018?",
+      "answer": "The total revenue earned in 2018 was $10,841,161.92.",
+      "contexts": [
+        "Metric: total_revenue\nDefinition: Total payment value from delivered orders only.\nExcludes cancelled, unavailable, or in-transit orders.\nSQL view: analytics.total_revenue\nDimensions: month, customer_state, product_category\nUse for: revenue, sales, income, earnings, money made, how much did we earn",
+        "Metric: revenue_by_category\nDefinition: Delivered revenue segmented by product_category_name.\nUse this INSTEAD of total_revenue when question involves product types.\nSQL view: analytics.revenue_by_category\nDimensions: month, product_category\nUse for: best category, top products, category performance, segment revenue",
+        "Metric: average_order_value (AOV)\nDefinition: Average revenue per delivered order.\nFormula: SUM(payment_value) / COUNT(delivered_orders)\nSQL view: analytics.average_order_value\nDimensions: month, product_category\nUse for: AOV, basket size, average purchase, order value"
+      ],
+      "ground_truth": "Total revenue is the sum of payment_value from delivered orders only. Cancelled, unavailable, or in-transit orders are excluded. The answer should reference the analytics.total_revenue view."
+    },
+    {
+      "question": "How many active customers were there in November 2017?",
+      "answer": "I cannot provide the number of active customers for November 2017 because the provided data results do not include time-based dimensions (such as month) to map the values to that specific period.",
+      "contexts": [
+        "Metric: active_customers\nDefinition: Unique customers (customer_unique_id) with at least one delivered order.\nSQL view: analytics.active_customers\nDimensions: month, customer_state\nUse for: active users, customer count, how many customers, user base",
+        "Metric: customer_retention_rate\nDefinition: % of month-N buyers who also bought in month N+1.\nSQL view: analytics.customer_retention_rate\nDimensions: month (cohort)\nUse for: retention, repeat customers, loyalty, churn, returning buyers",
+        "Metric: average_order_value (AOV)\nDefinition: Average revenue per delivered order.\nFormula: SUM(payment_value) / COUNT(delivered_orders)\nSQL view: analytics.average_order_value\nDimensions: month, product_category\nUse for: AOV, basket size, average purchase, order value"
+      ],
+      "ground_truth": "Active customers are unique customers (customer_unique_id) who placed at least one delivered order in the specified period."
+    },
+    {
+      "question": "What is the overall order conversion rate?",
+      "answer": "The overall order conversion rate is 97.02%. This metric represents the percentage of created orders that successfully reached delivered status.",
+      "contexts": [
+        "Metric: conversion_rate\nDefinition: % of created orders reaching delivered status.\nFormula: delivered_orders / total_orders * 100\nSQL view: analytics.conversion_rate\nDimensions: month\nUse for: conversion, order success rate, fulfillment rate, drop-off",
+        "Metric: average_order_value (AOV)\nDefinition: Average revenue per delivered order.\nFormula: SUM(payment_value) / COUNT(delivered_orders)\nSQL view: analytics.average_order_value\nDimensions: month, product_category\nUse for: AOV, basket size, average purchase, order value",
+        "Metric: order_fulfillment_time\nDefinition: Avg calendar days from purchase to delivery. Delivered orders only.\nSQL view: analytics.order_fulfillment_time\nDimensions: month, customer_state\nUse for: delivery speed, shipping time, fulfillment, how long, logistics"
+      ],
+      "ground_truth": "Conversion rate is the percentage of created orders that reach delivered status. Formula: delivered_orders / total_orders * 100."
+    },
+    {
+      "question": "What is the average order value per month in 2018?",
+      "answer": "The provided data only contains information for December 2017. There is no available data for 2018 to calculate the average order value (AOV) for that year.",
+      "contexts": [
+        "Metric: average_order_value (AOV)\nDefinition: Average revenue per delivered order.\nFormula: SUM(payment_value) / COUNT(delivered_orders)\nSQL view: analytics.average_order_value\nDimensions: month, product_category\nUse for: AOV, basket size, average purchase, order value",
+        "Metric: conversion_rate\nDefinition: % of created orders reaching delivered status.\nFormula: delivered_orders / total_orders * 100\nSQL view: analytics.conversion_rate\nDimensions: month\nUse for: conversion, order success rate, fulfillment rate, drop-off",
+        "Metric: customer_retention_rate\nDefinition: % of month-N buyers who also bought in month N+1.\nSQL view: analytics.customer_retention_rate\nDimensions: month (cohort)\nUse for: retention, repeat customers, loyalty, churn, returning buyers"
+      ],
+      "ground_truth": "Average order value (AOV) is the average revenue per delivered order. Formula: SUM(payment_value) / COUNT(delivered_orders)."
+    },
+    {
+      "question": "What is the average delivery time for orders by customer state?",
+      "answer": "The order_fulfillment_time\u2014defined as the average calendar days from purchase to delivery for delivered orders\u2014varies by customer state as follows:\n\n*   **SP:** 11.50 days\n*   **MG:** 12.10 days\n*   **DF:** 13.70 days\n*   **RJ:** 14.69 days\n*   **RS:** 14.97 days\n*   **SC:** 14.99 days\n*   **MS:** 15.10 days\n*   **GO:** 15.55 days\n*   **ES:** 15.92 days\n*   **MT:** 17.55 days\n*   **PE:** 18.61 days\n*   **BA:** 19.36 days\n*   **RN:** 19.40 days\n*   **RO:** 19.45 days\n*   **PI:** 19.69 days\n*   **PB:** 20.97 days\n*   **MA:** 21.20 days\n*   **AC:** 21.31 days\n*   **CE:** 21.57 days\n*   **SE:** 21.67 days\n*   **AL:** 24.58 days\n*   **AM:** 25.24 days\n*   **AP:** 26.17 days\n*   **RR:** 28.63 days\n\n*(Note: Data for PR is 11.86 days)*",
+      "contexts": [
+        "Metric: order_fulfillment_time\nDefinition: Avg calendar days from purchase to delivery. Delivered orders only.\nSQL view: analytics.order_fulfillment_time\nDimensions: month, customer_state\nUse for: delivery speed, shipping time, fulfillment, how long, logistics",
+        "Metric: conversion_rate\nDefinition: % of created orders reaching delivered status.\nFormula: delivered_orders / total_orders * 100\nSQL view: analytics.conversion_rate\nDimensions: month\nUse for: conversion, order success rate, fulfillment rate, drop-off",
+        "Metric: average_order_value (AOV)\nDefinition: Average revenue per delivered order.\nFormula: SUM(payment_value) / COUNT(delivered_orders)\nSQL view: analytics.average_order_value\nDimensions: month, product_category\nUse for: AOV, basket size, average purchase, order value"
+      ],
+      "ground_truth": "Order fulfillment time is the average calendar days from purchase timestamp to delivery timestamp for delivered orders only, segmented by customer state."
+    },
+    {
+      "question": "Which product category generates the most revenue?",
+      "answer": "The product category generating the most revenue is cama_mesa_banho, with a total of 1,692,714.28 in revenue.",
+      "contexts": [
+        "Metric: revenue_by_category\nDefinition: Delivered revenue segmented by product_category_name.\nUse this INSTEAD of total_revenue when question involves product types.\nSQL view: analytics.revenue_by_category\nDimensions: month, product_category\nUse for: best category, top products, category performance, segment revenue",
+        "Metric: average_order_value (AOV)\nDefinition: Average revenue per delivered order.\nFormula: SUM(payment_value) / COUNT(delivered_orders)\nSQL view: analytics.average_order_value\nDimensions: month, product_category\nUse for: AOV, basket size, average purchase, order value",
+        "Metric: total_revenue\nDefinition: Total payment value from delivered orders only.\nExcludes cancelled, unavailable, or in-transit orders.\nSQL view: analytics.total_revenue\nDimensions: month, customer_state, product_category\nUse for: revenue, sales, income, earnings, money made, how much did we earn"
+      ],
+      "ground_truth": "Revenue by category is delivered revenue segmented by product_category_name. The top category has the highest sum of payment_value across delivered orders."
+    },
+    {
+      "question": "What is the customer retention rate for Q1 2018?",
+      "answer": "The customer retention rate for Q1 2018 is 40%.",
+      "contexts": [
+        "Metric: customer_retention_rate\nDefinition: % of month-N buyers who also bought in month N+1.\nSQL view: analytics.customer_retention_rate\nDimensions: month (cohort)\nUse for: retention, repeat customers, loyalty, churn, returning buyers",
+        "Metric: active_customers\nDefinition: Unique customers (customer_unique_id) with at least one delivered order.\nSQL view: analytics.active_customers\nDimensions: month, customer_state\nUse for: active users, customer count, how many customers, user base",
+        "Metric: conversion_rate\nDefinition: % of created orders reaching delivered status.\nFormula: delivered_orders / total_orders * 100\nSQL view: analytics.conversion_rate\nDimensions: month\nUse for: conversion, order success rate, fulfillment rate, drop-off"
+      ],
+      "ground_truth": "Customer retention rate is the percentage of customers who purchased in month N and also purchased in month N+1, computed per cohort month."
+    },
+    {
+      "question": "What are the top 3 product categories by revenue in 2017?",
+      "answer": "The top 3 product categories by revenue are:\n\n1. **cama_mesa_banho**: 786,557.77\n2. **informatica_acessorios**: 682,059.73\n3. **moveis_decoracao**: 649,064.49\n\nThese figures represent the `revenue_by_category`, defined as the delivered revenue segmented by product category.",
+      "contexts": [
+        "Metric: revenue_by_category\nDefinition: Delivered revenue segmented by product_category_name.\nUse this INSTEAD of total_revenue when question involves product types.\nSQL view: analytics.revenue_by_category\nDimensions: month, product_category\nUse for: best category, top products, category performance, segment revenue",
+        "Metric: average_order_value (AOV)\nDefinition: Average revenue per delivered order.\nFormula: SUM(payment_value) / COUNT(delivered_orders)\nSQL view: analytics.average_order_value\nDimensions: month, product_category\nUse for: AOV, basket size, average purchase, order value",
+        "Metric: total_revenue\nDefinition: Total payment value from delivered orders only.\nExcludes cancelled, unavailable, or in-transit orders.\nSQL view: analytics.total_revenue\nDimensions: month, customer_state, product_category\nUse for: revenue, sales, income, earnings, money made, how much did we earn"
+      ],
+      "ground_truth": "Revenue by category ranks product_category_name by sum of payment_value from delivered orders. The top 3 categories have the highest revenue totals."
+    }
+  ]
+}
